@@ -293,7 +293,7 @@ if __name__ == '__main__':
         export_path = config.try_create_path()
         shutil.copy(os.path.join(main_chart_file_path, config.song_path), os.path.join(export_path, 'song.ogg'))
         shutil.copy(os.path.join(main_chart_file_path, config.bg), os.path.join(export_path, 'cover.jpg'))
-        with open(os.path.join(export_path, 'config.json'), 'w', encoding='UTF-8') as f:
+        with open(os.path.join(export_path, 'chart.json'), 'w', encoding='UTF-8') as f:
             json.dump(config.generate(), f, ensure_ascii=False, indent=None)
         # 将export_path里的3个文件压缩成zip
         shutil.make_archive(export_path, 'zip', export_path)
