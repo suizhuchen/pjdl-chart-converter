@@ -230,8 +230,7 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
                         ]
                     malody_notes.append(single_note)
                 else:
-                    # TODO:fix offset
-                    malody_corrected = int(malody_temp_note['offset']) / 1000
+                    malody_corrected = -(int(malody_temp_note['offset']) / 1000)
                     malody_sound_path = malody_temp_note['sound']
             return PJDLCConfig(malody_song_name, malody_sound_path, malody_creator, malody_info, malody_bg,
                                malody_bpm, malody_corrected, malody_notes)
