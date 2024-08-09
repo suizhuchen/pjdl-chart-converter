@@ -153,13 +153,17 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
                     osu_temp_beat_length = float(i[1])
                     osu_temp_start_time = int(i[0])
             osu_bpm = round(1 / osu_temp_beat_length * 1000 * 60, 3)
-            osu_corrected = osu_temp_start_time / 1000
+            # 20240809
+            # 突然察觉到，不能以0 beat开头
+            # 将corrected减去一拍长度
+            osu_corrected = (osu_temp_start_time - osu_temp_beat_length) / 1000
             # 谱面解析 Part 3
             osu_notes = list()
+
             for i in osu_chart_dict['HitObjects']:
                 osu_temp_note_key = math.floor(int(i[0]) * 4 / 512)
                 osu_temp_note_time_start = int(i[2]) - osu_temp_start_time
-                osu_temp_note_beat = osu_temp_note_time_start // osu_temp_beat_length
+                osu_temp_note_beat = osu_temp_note_time_start // osu_temp_beat_length + 1
                 osu_temp_note_beat_i = round(
                     (osu_temp_note_time_start % osu_temp_beat_length) / osu_temp_beat_length * 48)
                 if osu_temp_note_beat_i == 48:
@@ -200,6 +204,7 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
             malody_corrected = float()
             malody_sound_path = ''
             # 主谱面提取
+
             for malody_temp_note in malody_chart_dict['note']:
                 malody_temp_note = dict(malody_temp_note)
                 if malody_temp_note.get('column', -1) != -1:
@@ -230,8 +235,30 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
                         ]
                     malody_notes.append(single_note)
                 else:
-                    malody_corrected = -(int(malody_temp_note['offset']) / 1000)
+                    malody_corrected = -int(malody_temp_note['offset'])
                     malody_sound_path = malody_temp_note['sound']
+
+            # 20240809
+            # 你说得对，但是谱面偏移不能为负
+            # 浅浅的计算一下
+            # 首先，bpm的数值应该如何转换为一拍的时间
+            # bpm为拍数每分钟，那么一拍的时间为60000/bpm，单位为毫秒
+            # 我们在谱面所有信息提取完毕了再进行处理
+            malody_chart_bpm_time = 60000 / malody_bpm
+            malody_temp_correct_time = 0
+            if malody_corrected < 0:
+                while malody_corrected < 0:
+                    malody_corrected += malody_chart_bpm_time
+                    malody_corrected = round(malody_corrected, 3)  # 四舍五入
+                    malody_temp_correct_time += 1
+                # 现在延迟非零，将延迟单位由ms改为s
+                malody_corrected /= 1000
+                # 将谱面整体提前
+                for i in malody_notes:
+                    i[0] -= malody_temp_correct_time
+                    if i[0] < 0:
+                        raise f'谱面错误，谱面整体提前{malody_temp_correct_time}拍，导致拍数为负'
+            # 谱面解析 Part 3
             return PJDLCConfig(malody_song_name, malody_sound_path, malody_creator, malody_info, malody_bg,
                                malody_bpm, malody_corrected, malody_notes)
         case _:
