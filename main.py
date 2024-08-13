@@ -204,7 +204,17 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
             malody_corrected = float()
             malody_sound_path = ''
             # 主谱面提取
-
+            # 20240810
+            # 对于malody谱面，因为要提前offset，所以需要将beat提前
+            # 询问处理力度
+            print("\n对于malody谱面，需要将谱面偏移由负转正，因此需将谱面整体提前，对于提前的拍数，可以通过计算得来")
+            print('对此，我们加入了处理力度的机制，其作用为将谱面偏移向正调整，同时将谱面向前调整的精度')
+            print('比如力度为4，则会不停地以1/4拍为单位进行偏移与谱面的调整，直到偏移为正值')
+            malody_temp_input = input("请输入处理力度（默认：4）：")
+            if malody_temp_input == '':
+                malody_offset_arg = 4
+            else:
+                malody_offset_arg = int(malody_temp_input)
             for malody_temp_note in malody_chart_dict['note']:
                 malody_temp_note = dict(malody_temp_note)
                 if malody_temp_note.get('column', -1) != -1:
@@ -247,15 +257,20 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
             malody_chart_bpm_time = 60000 / malody_bpm
             malody_temp_correct_time = 0
             if malody_corrected < 0:
+                malody_temp_adding_offset = malody_chart_bpm_time * (1 / malody_offset_arg)
                 while malody_corrected < 0:
-                    malody_corrected += malody_chart_bpm_time
+                    malody_corrected += malody_temp_adding_offset
                     malody_corrected = round(malody_corrected, 3)  # 四舍五入
                     malody_temp_correct_time += 1
                 # 现在延迟非零，将延迟单位由ms改为s
                 malody_corrected /= 1000
                 # 将谱面整体提前
+                malody_temp_adding_offset = malody_temp_correct_time * (1 / malody_offset_arg) * 48
                 for i in malody_notes:
-                    i[0] -= malody_temp_correct_time
+                    i[1] -= malody_temp_adding_offset
+                    while i[1] < 0:
+                        i[1] += 48
+                        i[0] -= 1
                     if i[0] < 0:
                         raise f'谱面错误，谱面整体提前{malody_temp_correct_time}拍，导致拍数为负'
             # 谱面解析 Part 3
@@ -325,7 +340,7 @@ if __name__ == '__main__':
         shutil.make_archive(export_path, 'zip', export_path)
         # 将后缀从zip改为pjdlc
         os.rename(f'{export_path}.zip', f'{export_path}.pjdlc')
-        print(f'转换成功，文件已导出至{export_path}.pjdlc')
+        print(f'\n转换成功，文件已导出至{export_path}.pjdlc')
     except Exception as e:
         print('\n[程序报错]')
         # 输出更多信息，比如文件名，报错行数
