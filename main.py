@@ -132,7 +132,7 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
             # 提取必要信息
             # 因存储格式，导致数字以及其他类型数据均为文本
             if osu_chart_dict['General']['Mode'] != "3" and osu_chart_dict['Difficulty']['CircleSize'] != "4":
-                raise '非osu! mania 4k谱面'
+                raise Exception('非osu! mania 4k谱面')
             osu_song = osu_chart_dict['General']['AudioFilename']
             osu_song_name = osu_chart_dict['Metadata']['TitleUnicode']
             osu_creator = osu_chart_dict['Metadata']['Creator']
@@ -149,7 +149,7 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
             for i in osu_chart_dict['TimingPoints']:
                 if i[6] == "1":
                     if osu_temp_beat_length != -1:
-                        raise "不支持变速谱"
+                        raise Exception("不支持变速谱")
                     osu_temp_beat_length = float(i[1])
                     osu_temp_start_time = int(i[0])
             osu_bpm = round(1 / osu_temp_beat_length * 1000 * 60, 3)
@@ -191,10 +191,10 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
                 malody_chart_dict = json.load(f)
             # 4k谱面检测
             if malody_chart_dict['meta']['mode_ext']['column'] != 4:
-                raise '非4k谱面，转换失败'
+                raise Exception('非4k谱面，转换失败')
             # 非变速谱检测
             if len(malody_chart_dict['time']) != 1:
-                raise '谱面bpm非法（bpm信息错误/变速谱）'
+                raise Exception('谱面bpm非法（bpm信息错误/变速谱）')
             malody_song_name = malody_chart_dict['meta']['song']['title']
             malody_creator = malody_chart_dict['meta']['creator']
             malody_info = f'曲师：{malody_chart_dict['meta']['song']['artist']}\n{malody_chart_dict['meta']['version']}'
@@ -215,6 +215,7 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
                 malody_offset_arg = 4
             else:
                 malody_offset_arg = int(malody_temp_input)
+
             for malody_temp_note in malody_chart_dict['note']:
                 malody_temp_note = dict(malody_temp_note)
                 if malody_temp_note.get('column', -1) != -1:
@@ -227,7 +228,8 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
                             malody_temp_note['beat'][0])) * 48 + (round(int(malody_temp_note['endbeat'][1]) * 48) / int(
                             malody_temp_note['endbeat'][2]) - malody_temp_beat_i)
                         if malody_temp_drag <= 0:
-                            raise f'程序失误了，将下面这段信息保存\n\n\n{malody_temp_note}|{malody_temp_beat_i}|{malody_temp_drag}'
+                            raise Exception(
+                                f'程序失误了，将下面这段信息保存\n\n\n{malody_temp_note}|{malody_temp_beat_i}|{malody_temp_drag}')
                         single_note = [
                             malody_temp_note['beat'][0],
                             malody_temp_beat_i,
@@ -272,7 +274,7 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
                         i[1] += 48
                         i[0] -= 1
                     if i[0] < 0:
-                        raise f'谱面错误，谱面整体提前{malody_temp_correct_time}拍，导致拍数为负'
+                        raise Exception('谱面错误，谱面整体提前{malody_temp_correct_time}拍，导致拍数为负')
             # 谱面解析 Part 3
             return PJDLCConfig(malody_song_name, malody_sound_path, malody_creator, malody_info, malody_bg,
                                malody_bpm, malody_corrected, malody_notes)
