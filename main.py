@@ -9,6 +9,12 @@ import shutil
 import string
 import zipfile
 
+# 一个意义不明的定义区域
+chart_format_dict = {
+    ".osz": '.osu',
+    ".mcz": '.mc',
+}
+
 
 # 去除末尾的 .*
 def remove_end_dot(string: str) -> str:
@@ -97,37 +103,42 @@ class PJDLCConfig:
         return f'export/{path_name}'
 
 
+def osu_dict_process(osu_full: str) -> dict:
+    with open(osu_full, 'r', encoding='UTF-8-sig') as f:
+        osu_chart = f.read().split("\n")
+    osu_chart_dict = dict()
+    osu_temp_last_para = ''
+    for i in osu_chart:
+        # 新分节判定
+        if i.startswith('[') and i.endswith(']'):
+            osu_temp_last_para = i[1:-1]
+        else:
+            # 非空判断
+            if i != "" and osu_temp_last_para != '':
+                # 列表或键值对判断
+                osu_temp_key_pair = i.split(': ')
+                if len(osu_temp_key_pair) == 1:
+                    # 列表
+                    osu_temp_key_list = i.split(',')
+                    osu_temp_combined_list = list()
+                    for j in osu_temp_key_list:
+                        osu_temp_combined_list.append(j)
+                    if osu_chart_dict.get(osu_temp_last_para, None) is None:
+                        osu_chart_dict[osu_temp_last_para] = list()
+                    osu_chart_dict[osu_temp_last_para].append(osu_temp_combined_list)
+                else:
+                    if osu_chart_dict.get(osu_temp_last_para, None) is None:
+                        osu_chart_dict[osu_temp_last_para] = dict()
+                    osu_chart_dict[osu_temp_last_para][osu_temp_key_pair[0]] = osu_temp_key_pair[1]
+    return osu_chart_dict
+
+
 # 处理谱面信息
 def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: str) -> 'PJDLCConfig':
     match chart_type:
         case '.osu':
             osu_chart_full = os.path.join(chart_file_path, chart_file_name)
-            with open(osu_chart_full, 'r', encoding='UTF-8-sig') as f:
-                osu_chart = f.read().split("\n")
-            osu_chart_dict = dict()
-            osu_temp_last_para = ''
-            for i in osu_chart:
-                # 新分节判定
-                if i.startswith('[') and i.endswith(']'):
-                    osu_temp_last_para = i[1:-1]
-                else:
-                    # 非空判断
-                    if i != "" and osu_temp_last_para != '':
-                        # 列表或键值对判断
-                        osu_temp_key_pair = i.split(': ')
-                        if len(osu_temp_key_pair) == 1:
-                            # 列表
-                            osu_temp_key_list = i.split(',')
-                            osu_temp_combined_list = list()
-                            for j in osu_temp_key_list:
-                                osu_temp_combined_list.append(j)
-                            if osu_chart_dict.get(osu_temp_last_para, None) is None:
-                                osu_chart_dict[osu_temp_last_para] = list()
-                            osu_chart_dict[osu_temp_last_para].append(osu_temp_combined_list)
-                        else:
-                            if osu_chart_dict.get(osu_temp_last_para, None) is None:
-                                osu_chart_dict[osu_temp_last_para] = dict()
-                            osu_chart_dict[osu_temp_last_para][osu_temp_key_pair[0]] = osu_temp_key_pair[1]
+            osu_chart_dict = osu_dict_process(osu_chart_full)
             # 谱面解析 Part 2
             # 提取必要信息
             # 因存储格式，导致数字以及其他类型数据均为文本
@@ -282,6 +293,39 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
             raise ValueError('1.谱面格式暂不支持 2.本报错位于处理谱面信息，前方检查未报错')
 
 
+def chart_name_display(choose_chart_file_path: str, choose_chart_format: str) -> [str, str]:
+    if chart_format not in chart_format_dict.values():
+        raise ValueError('谱面格式错误')
+    _chart_list = list()
+    # 遍历当前py文件目录下除了py后缀的所有文件，排除文件夹:
+    for root, dirs, files in os.walk(choose_chart_file_path):
+        for _file in files:
+            relative_path = os.path.relpath(os.path.join(root, _file), choose_chart_file_path)
+            full_path = os.path.join(root, _file)
+            if full_path.endswith(choose_chart_format):
+                match choose_chart_format:
+                    case '.osu':
+                        osu_chart_dict = osu_dict_process(full_path)
+                        _chart_list.append(relative_path)
+                        print(f'{len(_chart_list) - 1}：{osu_chart_dict['Metadata']['Version']}')
+                    case '.mc':
+                        with open(full_path, 'r', encoding='UTF-8') as f:
+                            malody_chart_dict = json.load(f)
+                            _chart_list.append(relative_path)
+                            print(f'{len(_chart_list) - 1}：{malody_chart_dict['meta']['version']}')
+                    case _:
+                        raise ValueError('1.谱面格式暂不支持 2.本报错位于处理谱面信息，前方检查未报错')
+    chart_index = int(input('\n请输入欲转换谱面文件序号：'))
+    if chart_index not in range(0, len(_chart_list)):
+        raise ValueError('谱面文件序号错误')
+    # 此处main_chart_file_name仅为文件名本身（比如123.mcz），path则不包含文件名，仅目录
+    # 仅适配Windows平台，采取反斜杠进行目录分割（因为PJDL目前也只输出了Windows平台，需要改了再改罢（叹气
+    return_chart_file_name = _chart_list[chart_index].split('\\')[-1]
+    return_chart_file_path = os.path.join(zipped_chart_file_path, os.path.dirname(_chart_list[chart_index]))
+    # 进入不同的谱面处理环节
+    return return_chart_file_name, return_chart_file_path
+
+
 if __name__ == '__main__':
     global zipped_chart_file_path, export_path
     print('欢迎使用PJDLC谱面文件转换工具')
@@ -308,34 +352,20 @@ if __name__ == '__main__':
         # shutil.unpack_archive(zipped_chart_file_name, zipped_chart_file_path, format='zip')
         unzip_chinese(zipped_chart_file_name, zipped_chart_file_path)
         # 根据谱面文件格式进行分别操作
-        chart_format_dict = {
-            ".osz": '.osu',
-            ".mcz": '.mc',
-        }
+
         if chart_format_dict.get(get_end_dot(zipped_chart_file_name), None) is None:
             raise ValueError('谱面文件格式错误')
         chart_format = chart_format_dict[get_end_dot(zipped_chart_file_name)]
         chart_list = list()
-        for root, dirs, files in os.walk(zipped_chart_file_path):
-            for file in files:
-                # 构建相对路径
-                relative_path = os.path.relpath(os.path.join(root, file), zipped_chart_file_path)
-                if relative_path.endswith(chart_format):
-                    chart_list.append(relative_path)
-                    print(f'{len(chart_list) - 1}：{relative_path}')
-        chart_index = int(input('\n请输入欲转换谱面文件序号：'))
-        if chart_index not in range(0, len(chart_list)):
-            raise ValueError('谱面文件序号错误')
-        # 此处main_chart_file_name仅为文件名本身（比如123.mcz），path则不包含文件名，仅目录
-        # 仅适配Windows平台，采取反斜杠进行目录分割（因为PJDL目前也只输出了Windows平台，需要改了再改罢（叹气
-        main_chart_file_name = chart_list[chart_index].split('\\')[-1]
-        main_chart_file_path = os.path.join(zipped_chart_file_path, os.path.dirname(chart_list[chart_index]))
-        # 进入不同的谱面处理环节
+        # 20240814
+        # 优化了对谱面文件的判断
+        # 不再显示文件名而是直接显示难度
+        main_chart_file_name, main_chart_file_path = chart_name_display(zipped_chart_file_path, chart_format)
         config = process_chart_info(chart_format, main_chart_file_path, main_chart_file_name)
 
         export_path = config.try_create_path()
-        shutil.copy(os.path.join(main_chart_file_path, config.song_path), os.path.join(export_path, 'song.ogg'))
-        shutil.copy(os.path.join(main_chart_file_path, config.bg), os.path.join(export_path, 'cover.jpg'))
+        shutil.copy(str(os.path.join(main_chart_file_path, config.song_path)), os.path.join(export_path, 'song.ogg'))
+        shutil.copy(str(os.path.join(main_chart_file_path, config.bg)), os.path.join(export_path, 'cover.jpg'))
         with open(os.path.join(export_path, 'chart.json'), 'w', encoding='UTF-8') as f:
             json.dump(config.generate(), f, ensure_ascii=False, indent=None)
         # 将export_path里的3个文件压缩成zip
