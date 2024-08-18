@@ -51,7 +51,7 @@ suichen114514@outlook.com
 
 ### 鸣谢
 
-PJDL作者：[爱唱歌的花枝丸](https://github.com/hua-zhi-wan)
+PJDL作者：[会唱歌的花枝丸](https://github.com/hua-zhi-wan)
 
 README文件模板：[Best_README_template](https://github.com/shaojintian/Best_README_template)
 
