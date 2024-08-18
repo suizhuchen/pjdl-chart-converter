@@ -218,10 +218,14 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
             # 20240810
             # 对于malody谱面，因为要提前offset，所以需要将beat提前
             # 询问处理力度
-
-            # 20240818
-            # 新版本支持负延迟
-            # 故不再进行处理
+            print("\n对于malody谱面，需要将谱面偏移由负转正，因此需将谱面整体提前，对于提前的拍数，可以通过计算得来")
+            print('对此，我们加入了处理力度的机制，其作用为将谱面偏移向正调整，同时将谱面向前调整的精度')
+            print('比如力度为4，则会不停地以1/4拍为单位进行偏移与谱面的调整，直到偏移为正值')
+            malody_temp_input = input("请输入处理力度（默认：4）：")
+            if malody_temp_input == '':
+                malody_offset_arg = 4
+            else:
+                malody_offset_arg = int(malody_temp_input)
 
             for malody_temp_note in malody_chart_dict['note']:
                 malody_temp_note = dict(malody_temp_note)
@@ -254,7 +258,7 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
                         ]
                     malody_notes.append(single_note)
                 else:
-                    malody_corrected = -(int(malody_temp_note['offset']) / 1000)
+                    malody_corrected = -int(malody_temp_note['offset'])
                     malody_sound_path = malody_temp_note['sound']
 
             # 20240809
@@ -263,7 +267,25 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
             # 首先，bpm的数值应该如何转换为一拍的时间
             # bpm为拍数每分钟，那么一拍的时间为60000/bpm，单位为毫秒
             # 我们在谱面所有信息提取完毕了再进行处理
-
+            malody_chart_bpm_time = 60000 / malody_bpm
+            malody_temp_correct_time = 0
+            if malody_corrected < 0:
+                malody_temp_adding_offset = malody_chart_bpm_time * (1 / malody_offset_arg)
+                while malody_corrected < 0:
+                    malody_corrected += malody_temp_adding_offset
+                    malody_corrected = round(malody_corrected, 3)  # 四舍五入
+                    malody_temp_correct_time += 1
+                # 现在延迟非零，将延迟单位由ms改为s
+                malody_corrected /= 1000
+                # 将谱面整体提前
+                malody_temp_adding_offset = malody_temp_correct_time * (1 / malody_offset_arg) * 48
+                for i in malody_notes:
+                    i[1] -= malody_temp_adding_offset
+                    while i[1] < 0:
+                        i[1] += 48
+                        i[0] -= 1
+                    if i[0] < 0:
+                        raise Exception('谱面错误，谱面整体提前{malody_temp_correct_time}拍，导致拍数为负')
             # 谱面解析 Part 3
             return PJDLCConfig(malody_song_name, malody_sound_path, malody_creator, malody_info, malody_bg,
                                malody_bpm, malody_corrected, malody_notes)
@@ -285,12 +307,12 @@ def chart_name_display(choose_chart_file_path: str, choose_chart_format: str) ->
                     case '.osu':
                         osu_chart_dict = osu_dict_process(full_path)
                         _chart_list.append(relative_path)
-                        print(f'{len(_chart_list) - 1}：{osu_chart_dict['Metadata']['Version']} in {relative_path}')
+                        print(f'{len(_chart_list) - 1}：{osu_chart_dict['Metadata']['Version']}')
                     case '.mc':
                         with open(full_path, 'r', encoding='UTF-8') as f:
                             malody_chart_dict = json.load(f)
                             _chart_list.append(relative_path)
-                            print(f'{len(_chart_list) - 1}：{malody_chart_dict['meta']['version']} in {relative_path}')
+                            print(f'{len(_chart_list) - 1}：{malody_chart_dict['meta']['version']}')
                     case _:
                         raise ValueError('1.谱面格式暂不支持 2.本报错位于处理谱面信息，前方检查未报错')
     chart_index = int(input('\n请输入欲转换谱面文件序号：'))
@@ -328,12 +350,11 @@ if __name__ == '__main__':
             shutil.rmtree(zipped_chart_file_path)
         # 解压 适配UTF-8（适配中文）
         # shutil.unpack_archive(zipped_chart_file_name, zipped_chart_file_path, format='zip')
+        unzip_chinese(zipped_chart_file_name, zipped_chart_file_path)
         # 根据谱面文件格式进行分别操作
 
         if chart_format_dict.get(get_end_dot(zipped_chart_file_name), None) is None:
             raise ValueError('谱面文件格式错误')
-        unzip_chinese(zipped_chart_file_name, zipped_chart_file_path)
-
         chart_format = chart_format_dict[get_end_dot(zipped_chart_file_name)]
         chart_list = list()
         # 20240814
