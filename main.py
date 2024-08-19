@@ -116,8 +116,15 @@ def osu_dict_process(osu_full: str) -> dict:
             # 非空判断
             if i != "" and osu_temp_last_para != '':
                 # 列表或键值对判断
-                osu_temp_key_pair = i.split(': ')
-                if len(osu_temp_key_pair) == 1:
+                osu_temp_key_pair = i.strip().split(':')
+                if len(osu_temp_key_pair) == 2:
+                    if osu_chart_dict.get(osu_temp_last_para, None) is None:
+                        osu_chart_dict[osu_temp_last_para] = dict()
+                    osu_chart_dict[osu_temp_last_para][osu_temp_key_pair[0]] = osu_temp_key_pair[1]
+                else:
+                    if osu_temp_key_pair[0].strip().startswith('//'):
+                        continue
+
                     # 列表
                     osu_temp_key_list = i.split(',')
                     osu_temp_combined_list = list()
@@ -126,10 +133,6 @@ def osu_dict_process(osu_full: str) -> dict:
                     if osu_chart_dict.get(osu_temp_last_para, None) is None:
                         osu_chart_dict[osu_temp_last_para] = list()
                     osu_chart_dict[osu_temp_last_para].append(osu_temp_combined_list)
-                else:
-                    if osu_chart_dict.get(osu_temp_last_para, None) is None:
-                        osu_chart_dict[osu_temp_last_para] = dict()
-                    osu_chart_dict[osu_temp_last_para][osu_temp_key_pair[0]] = osu_temp_key_pair[1]
     return osu_chart_dict
 
 
@@ -144,14 +147,14 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
             # 因存储格式，导致数字以及其他类型数据均为文本
             if osu_chart_dict['General']['Mode'] != "3" and osu_chart_dict['Difficulty']['CircleSize'] != "4":
                 raise Exception('非osu! mania 4k谱面')
-            osu_song = osu_chart_dict['General']['AudioFilename']
-            osu_song_name = osu_chart_dict['Metadata']['TitleUnicode']
-            osu_creator = osu_chart_dict['Metadata']['Creator']
-            osu_info = f'曲师：{osu_chart_dict['Metadata']['ArtistUnicode']}\n{osu_chart_dict['Metadata']['Version']}'
+            osu_song = osu_chart_dict['General']['AudioFilename'].strip()
+            osu_song_name = osu_chart_dict['Metadata']['TitleUnicode'].strip()
+            osu_creator = osu_chart_dict['Metadata']['Creator'].strip()
+            osu_info = f'曲师：{osu_chart_dict['Metadata']['ArtistUnicode']}\n{osu_chart_dict['Metadata']['Version']}'.strip()
             osu_bg = ''
             for i in osu_chart_dict['Events']:
                 if len(i) == 5 and i[0] == "0" and i[1] == "0":
-                    osu_bg = i[2][1:-1]
+                    osu_bg = i[2][1:-1].strip()
                     break
             # 谱面解析 Part 3
             # 谱面主体解析
@@ -206,10 +209,10 @@ def process_chart_info(chart_type: str, chart_file_path: str, chart_file_name: s
             # 非变速谱检测
             if len(malody_chart_dict['time']) != 1:
                 raise Exception('谱面bpm非法（bpm信息错误/变速谱）')
-            malody_song_name = malody_chart_dict['meta']['song']['title']
-            malody_creator = malody_chart_dict['meta']['creator']
-            malody_info = f'曲师：{malody_chart_dict['meta']['song']['artist']}\n{malody_chart_dict['meta']['version']}'
-            malody_bg = malody_chart_dict['meta']['background']
+            malody_song_name = malody_chart_dict['meta']['song']['title'].strip()
+            malody_creator = malody_chart_dict['meta']['creator'].strip()
+            malody_info = f'曲师：{malody_chart_dict['meta']['song']['artist']}\n{malody_chart_dict['meta']['version']}'.strip()
+            malody_bg = malody_chart_dict['meta']['background'].strip()
             malody_bpm = malody_chart_dict['time'][0]['bpm']
             malody_notes = list()
             malody_corrected = float()
