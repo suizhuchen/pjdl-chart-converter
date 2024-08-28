@@ -127,7 +127,7 @@ class PJDLChart:
                         if ':' in item:
                             # 非文件名（引号包裹）
                             if item.startswith('"') and item.endswith('"'):
-                                item = item.strip('"').strip()
+                                item = item[1:-1].strip()
                                 current_list.append(item)
                             else:
                                 # small_list也可能存在带冒号的文件名，但是那块我们不管，我们不需要那么多信息
