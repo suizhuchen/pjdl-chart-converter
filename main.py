@@ -227,7 +227,7 @@ class PJDLChart:
                     },
                     'time': [{
                         'beat': [0, 0, 1],
-                        'bpm': 185.0
+                        'bpm': self.bpm
                     }],
                     'effect': [],
                     'note': [],
