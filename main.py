@@ -39,7 +39,7 @@ class PJDLChart:
                 return PJDLChart(song_name, song_path, creator, info, bg, bpm, corrected, notes)
             case 'malody':
                 chart_dict = json.loads(chart_string)
-                if chart_dict['meta']['mode_ext']['column'] != 4:
+                if chart_dict.get('meta', -1).get('mode_ext', -1).get('column', -1) != 4:
                     return "不支持非4key谱面"
                 if len(chart_dict['time']) != 1:
                     return '谱面bpm非法（bpm信息错误/变速谱）'
