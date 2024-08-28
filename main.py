@@ -39,6 +39,7 @@ class PJDLChart:
                 return PJDLChart(song_name, song_path, creator, info, bg, bpm, corrected, notes)
             case 'malody':
                 chart_dict = json.loads(chart_string)
+                # 存在slide或其他模式不存在column的情况，因此使用get赋予默认值
                 if chart_dict.get('meta', -1).get('mode_ext', -1).get('column', -1) != 4:
                     return "不支持非4key谱面"
                 if len(chart_dict['time']) != 1:
