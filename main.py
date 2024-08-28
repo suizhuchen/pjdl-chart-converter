@@ -7,20 +7,26 @@ import json
 
 
 class PJDLChart:
-    def __init__(self, song_name: str, song_path: str, creator: str, info: str, bg: str, bpm: float, corrected: float,
+    def __init__(self, song_name: str, song_path: str, creator: str, author: str, version: str, info: str, bg: str,
+                 bpm: float,
+                 corrected: float,
                  notes: list):
         self.song_name = song_name
         self.song_path = song_path
         self.creator = creator
-        self.info = info
+        self.author = author
+        self.version = version
         self.bg = bg
         self.bpm = bpm
         self.corrected = corrected
         self.notes = notes
+        self.info = info
 
     def __str__(self):
         return (
-            f"Song Name: {self.song_name}\nSong Path: {self.song_path}\nCreator: {self.creator}\nInfo: {self.info}\n"
+            f"Song Name: {self.song_name}\nSong Path: {self.song_path}\nCreator: {self.creator}\n"
+            f"Author: {self.author}\n"
+            f"Version: {self.version}\nInfo: {self.info}\n"
             f"Background: {self.bg}\nBPM: {self.bpm}\nCorrected: {self.corrected}\nNotes: {self.notes}")
 
     @staticmethod
@@ -32,11 +38,13 @@ class PJDLChart:
                 song_path = 'song.ogg'
                 creator = chart_dict['author']
                 info = chart_dict['info']
+                author = 'Various Artists'
+                version = 'Converted from PJDL'
                 bg = 'cover.jpg'
                 bpm = chart_dict['bpm']
                 corrected = chart_dict['corrected']
                 notes = chart_dict['notes']
-                return PJDLChart(song_name, song_path, creator, info, bg, bpm, corrected, notes)
+                return PJDLChart(song_name, song_path, creator, author, version, info, bg, bpm, corrected, notes)
             case 'malody':
                 chart_dict = json.loads(chart_string)
                 # 存在slide或其他模式不存在column的情况，因此使用get赋予默认值
@@ -46,7 +54,9 @@ class PJDLChart:
                     return '谱面bpm非法（bpm信息错误/变速谱）'
                 song_name = chart_dict['meta']['song']['title'].strip()
                 creator = chart_dict['meta']['creator'].strip()
-                info = f'曲师：{chart_dict['meta']['song']['artist']}\n{chart_dict['meta']['version']}'.strip()
+                author = chart_dict['meta']['song']['artist'].strip()
+                version = chart_dict['meta']['version'].strip()
+                info = ''
                 bg = chart_dict['meta']['background'].strip()
                 bpm = chart_dict['time'][0]['bpm']
                 notes = list()
@@ -73,7 +83,7 @@ class PJDLChart:
                     else:
                         corrected = round(-(int(note['offset']) / 1000), 3)
                         sound_path = note['sound'].strip()
-                return PJDLChart(song_name, sound_path, creator, info, bg, bpm, corrected, notes)
+                return PJDLChart(song_name, sound_path, creator, author, version, info, bg, bpm, corrected, notes)
 
             case 'osu':
                 # 对于osu，我们需要先将osu格式转换为json，再进行分析
@@ -136,7 +146,9 @@ class PJDLChart:
                 song_path = chart_dict['General']['AudioFilename'].strip()
                 song_name = chart_dict['Metadata']['TitleUnicode'].strip()
                 creator = chart_dict['Metadata']['Creator'].strip()
-                info = f'曲师：{chart_dict['Metadata']['ArtistUnicode']}\n{chart_dict['Metadata']['Version']}'.strip()
+                author = chart_dict['Metadata']['ArtistUnicode'].strip()
+                version = chart_dict['Metadata']['Version'].strip()
+                info = ''
                 bg = ''
                 for i in chart_dict['Events']:
                     if len(i) == 5 and i[0] == "0" and i[1] == "0":
@@ -176,7 +188,7 @@ class PJDLChart:
                     else:
                         drag = 0
                     notes.append([beat, beat_i, drag, key])
-                return PJDLChart(song_name, song_path, creator, info, bg, bpm, corrected, notes)
+                return PJDLChart(song_name, song_path, creator, author, version, info, bg, bpm, corrected, notes)
 
             case _:
                 return "非法的谱面类型"
@@ -184,11 +196,12 @@ class PJDLChart:
     def generate_to_chart(self, chart_type: str) -> str:
         match chart_type:
             case 'pjdl':
+                info = f'曲师:{self.author}\n难度:{self.version}' if self.info == '' else self.info
                 chart_dict = {
                     'author': self.creator,
                     'bpm': self.bpm,
                     'corrected': self.corrected,
-                    'info': self.info,
+                    'info': info,
                     'name': self.song_name,
                     'notes': self.notes
                 }
@@ -199,12 +212,12 @@ class PJDLChart:
                         "$ver": 0,
                         'creator': self.creator,
                         'background': self.bg,
-                        'version': 'PJDL Chart Convert',
+                        'version': 'PJDL Chart Convert' if self.version == '' else self.version,
                         'id': 0,
                         'time': int(time.time()),
                         'song': {
                             'title': self.song_name,
-                            'artist': '',
+                            'artist': 'Various Artists' if self.author == '' else self.author,
                             'id': 0
                         },
                         "mode_ext": {
