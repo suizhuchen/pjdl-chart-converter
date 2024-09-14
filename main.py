@@ -269,9 +269,4 @@ class PJDLChart:
 
 
 if __name__ == '__main__':
-    with open('test.mc', 'r', encoding='utf-8') as f:
-        chart_string = f.read()
-        chart = PJDLChart.generate_from_chart(chart_string, 'malody')
-        print(chart)
-        chart_string = chart.generate_to_chart('malody')
-        print(chart_string)
+    print('test')
