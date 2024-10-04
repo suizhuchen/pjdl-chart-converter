@@ -263,15 +263,78 @@ class PJDLChart:
                 })
                 return json.dumps(chart_dict, ensure_ascii=False)
             case 'osu':
-                return "osu格式暂不支持"
+                # 这里其实无非就是转换为osu的格式，依然是文本的拼接
+                # 先计算一些东西
+                offset = self.corrected * 1000
+                single_beat_ms = 1 / (self.bpm / 60000)
+
+                note_text = ''
+                for note in self.notes:
+                    beat, beat_i, drag, key = note
+                    beat_ms = round(offset + single_beat_ms * beat + beat_i / 48 * single_beat_ms)
+                    y = 192
+                    x_dict = {
+                        0: 0,
+                        1: 128,
+                        2: 256,
+                        3: 384
+                    }
+                    x = x_dict[key]
+                    if drag != 0:
+                        end_time = beat_ms + round(drag / 48 * single_beat_ms)
+                        this_note_text = f'{x},{y},{beat_ms},128,0,{end_time}:0:0:0:0:'
+                    else:
+                        this_note_text = f'{x},{y},{beat_ms},1,0,0:0:0:0:'
+                    note_text += this_note_text + '\n'
+
+                osu_string = \
+                    f'''
+osu file format v128
+
+[General]
+AudioFilename: song.ogg
+Countdown: 0
+Mode: 3
+
+[Metadata]
+Title: {self.song_name}
+TitleUnicode: {self.song_name}
+Artist: {self.author}
+ArtistUnicode: {self.author}
+Creator: {self.creator}
+Version: {self.version}
+Source: PJDLChartConverter
+Tags: PJDL
+BeatmapID: 0
+BeatmapSbpetID: 0
+
+[Difficulty]
+HPDrainRate: 7.5
+CircleSize: 4
+OverallDifficulty: 7.5
+ApproachRate: 5
+SliderMultiplier: 1.4
+SliderTickRate: 1
+
+[Events]
+0,0,"cover.jpg",0,0
+
+[TimingPoints]
+{offset},{single_beat_ms},4,0,0,100,1,1
+
+[HitObjects]
+{note_text}
+'''
+                # 部分注释
+                # 不知道General的AudioFilename是否支持ogg，先支持再说
+                # 大部分内容直接采取默认值
+                # 跳过Editor部分，因为我不知道怎么写
+                # 罗马音，我懒得转了
+
+                return osu_string[1:-1] + "\n"
             case _:
                 return "非法的谱面类型"
 
 
 if __name__ == '__main__':
-    with open('test.mc', 'r', encoding='utf-8') as f:
-        chart_string = f.read()
-        chart = PJDLChart.generate_from_chart(chart_string, 'malody')
-        print(chart)
-        chart_string = chart.generate_to_chart('malody')
-        print(chart_string)
+    print('哇嗷！！！')
