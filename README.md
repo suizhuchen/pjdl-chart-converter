@@ -1,6 +1,7 @@
 # pjdl-chart-converter
 
 基于python实现osu! mania 与malody 4k谱面osz/mcz格式文件转换为PJDL谱面pjdlc格式文件
+GUI版本：https://github.com/suizhuchen/PJDL_Chart_Coverter_GUI
 
 <!-- PROJECT SHIELDS -->
 
