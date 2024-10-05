@@ -272,8 +272,6 @@ class PJDLChart:
                     while offset < 0:
                         offset += single_beat_ms
 
-                offset = round(offset)
-
                 note_text = ''
                 for note in self.notes:
                     beat, beat_i, drag, key = note
