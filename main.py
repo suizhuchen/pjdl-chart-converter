@@ -268,16 +268,10 @@ class PJDLChart:
                 offset = self.corrected * 1000
                 single_beat_ms = 1 / (self.bpm / 60000)
 
-                if offset < 0:
-                    while offset < 0:
-                        offset += single_beat_ms
-
-                offset = round(offset)
-
                 note_text = ''
                 for note in self.notes:
                     beat, beat_i, drag, key = note
-                    beat_ms = round((offset + single_beat_ms * beat + beat_i / 48 * single_beat_ms) + offset)
+                    beat_ms = round(offset + single_beat_ms * beat + beat_i / 48 * single_beat_ms)
                     y = 192
                     x_dict = {
                         0: 0,
@@ -287,7 +281,7 @@ class PJDLChart:
                     }
                     x = x_dict[key]
                     if drag != 0:
-                        end_time = beat_ms + round((drag / 48 * single_beat_ms) + offset)
+                        end_time = beat_ms + round(drag / 48 * single_beat_ms)
                         this_note_text = f'{x},{y},{beat_ms},128,0,{end_time}:0:0:0:0:'
                     else:
                         this_note_text = f'{x},{y},{beat_ms},1,0,0:0:0:0:'
