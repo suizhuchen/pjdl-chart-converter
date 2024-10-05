@@ -268,10 +268,12 @@ class PJDLChart:
                 offset = self.corrected * 1000
                 single_beat_ms = 1 / (self.bpm / 60000)
 
+                offset = round(offset)
+
                 note_text = ''
                 for note in self.notes:
                     beat, beat_i, drag, key = note
-                    beat_ms = round(offset + single_beat_ms * beat + beat_i / 48 * single_beat_ms)
+                    beat_ms = round((offset + single_beat_ms * beat + beat_i / 48 * single_beat_ms) + offset)
                     y = 192
                     x_dict = {
                         0: 0,
@@ -281,7 +283,7 @@ class PJDLChart:
                     }
                     x = x_dict[key]
                     if drag != 0:
-                        end_time = beat_ms + round(drag / 48 * single_beat_ms)
+                        end_time = beat_ms + round((drag / 48 * single_beat_ms) + offset)
                         this_note_text = f'{x},{y},{beat_ms},128,0,{end_time}:0:0:0:0:'
                     else:
                         this_note_text = f'{x},{y},{beat_ms},1,0,0:0:0:0:'
@@ -292,7 +294,7 @@ class PJDLChart:
 osu file format v128
 
 [General]
-AudioFilename: song.ogg
+AudioFilename: {self.song_path}
 Countdown: 0
 Mode: 3
 
@@ -317,10 +319,10 @@ SliderMultiplier: 1.4
 SliderTickRate: 1
 
 [Events]
-0,0,"cover.jpg",0,0
+0,0,"{self.bg}",0,0
 
 [TimingPoints]
-{offset},{single_beat_ms},4,0,0,100,1,1
+0,{single_beat_ms},4,0,0,100,1,1
 
 [HitObjects]
 {note_text}
@@ -331,10 +333,16 @@ SliderTickRate: 1
                 # 跳过Editor部分，因为我不知道怎么写
                 # 罗马音，我懒得转了
 
-                return osu_string[1:-1] + "\n"
+                return osu_string[1:-1]
             case _:
                 return "非法的谱面类型"
 
 
 if __name__ == '__main__':
-    print('哇嗷！！！')
+    with open('chart.json', 'r', encoding='utf-8') as f:
+        chart_string = f.read()
+    chart = PJDLChart.generate_from_chart(chart_string, 'pjdl')
+    print(chart)
+    chart_string = chart.generate_to_chart('osu')
+    with open('chart.osu', 'w', encoding='utf-8') as f:
+        f.write(chart_string)
