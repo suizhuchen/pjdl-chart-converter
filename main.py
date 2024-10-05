@@ -268,6 +268,10 @@ class PJDLChart:
                 offset = self.corrected * 1000
                 single_beat_ms = 1 / (self.bpm / 60000)
 
+                if offset < 0:
+                    while offset < 0:
+                        offset += single_beat_ms
+
                 offset = round(offset)
 
                 note_text = ''
@@ -322,7 +326,7 @@ SliderTickRate: 1
 0,0,"{self.bg}",0,0
 
 [TimingPoints]
-0,{single_beat_ms},4,0,0,100,1,1
+{offset},{single_beat_ms},4,0,0,100,1,1
 
 [HitObjects]
 {note_text}
