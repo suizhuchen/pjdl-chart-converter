@@ -163,7 +163,7 @@ class PJDLChart:
                         if beat_length != -1:
                             return "谱面bpm非法（bpm信息错误/变速谱）"
                         beat_length = float(i[1])
-                        start_time = int(i[0])
+                        start_time = round(float(i[0]))
                 if beat_length == -1:
                     return "谱面bpm非法（bpm信息错误/缺少bpm信息）"
                 bpm = round(1 / beat_length * 1000 * 60, 3)
